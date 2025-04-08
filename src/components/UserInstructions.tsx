@@ -10,10 +10,10 @@ const UserInstructions = ({
   setInstructions,
 }: UserInstructionsProps): JSX.Element => {
   return (
-    <>
+    <div className="user-instructions-section">
       <div className="user-instructions-header">
         <label className="content-title" htmlFor="userInstructionsInput">
-          User Instructions
+          Custom Prompt
         </label>
       </div>
       <div className="user-instructions-container">
@@ -24,14 +24,11 @@ const UserInstructions = ({
             onChange={(e) => setInstructions(e.target.value)}
             placeholder="Enter your instructions here..."
             rows={4}
-            style={{
-              width: "100%",
-              resize: "none",
-            }}
+            className="user-instructions-textarea"
           />
         </div>
       </div>
-    </>
+    </div>
   );
 };
 

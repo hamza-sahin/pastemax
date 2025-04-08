@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import Sidebar from "./components/Sidebar";
 import FileList from "./components/FileList";
 import CopyButton from "./components/CopyButton";
+import UserInstructions from "./components/UserInstructions";
 import { FileData } from "./types/FileTypes";
 import { ThemeProvider } from "./context/ThemeContext";
 import ThemeToggle from "./components/ThemeToggle";
@@ -38,6 +39,8 @@ const STORAGE_KEYS = {
   SORT_ORDER: "pastemax-sort-order",
   SEARCH_TERM: "pastemax-search-term",
   EXPANDED_NODES: "pastemax-expanded-nodes",
+  CUSTOM_PROMPT: "pastemax-custom-prompt",
+  INCLUDE_PROMPT: "pastemax-include-prompt",
 };
 
 /**
@@ -60,6 +63,8 @@ const App = (): JSX.Element => {
   const savedFiles = localStorage.getItem(STORAGE_KEYS.SELECTED_FILES);
   const savedSortOrder = localStorage.getItem(STORAGE_KEYS.SORT_ORDER);
   const savedSearchTerm = localStorage.getItem(STORAGE_KEYS.SEARCH_TERM);
+  const savedCustomPrompt = localStorage.getItem(STORAGE_KEYS.CUSTOM_PROMPT);
+  const savedIncludePrompt = localStorage.getItem(STORAGE_KEYS.INCLUDE_PROMPT);
 
   const [selectedFolder, setSelectedFolder] = useState(
     savedFolder as string | null
@@ -83,6 +88,12 @@ const App = (): JSX.Element => {
     }
   );
   const [includeFileTree, setIncludeFileTree] = useState(false);
+  const [customPrompt, setCustomPrompt] = useState(
+    savedCustomPrompt || ""
+  );
+  const [includePrompt, setIncludePrompt] = useState(
+    savedIncludePrompt === "true" || true
+  );
   
 
 
@@ -134,6 +145,16 @@ const App = (): JSX.Element => {
   useEffect(() => {
     localStorage.setItem(STORAGE_KEYS.SEARCH_TERM, searchTerm);
   }, [searchTerm]);
+
+  // Persist custom prompt when it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.CUSTOM_PROMPT, customPrompt);
+  }, [customPrompt]);
+
+  // Persist include prompt setting when it changes
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEYS.INCLUDE_PROMPT, includePrompt.toString());
+  }, [includePrompt]);
 
   // Add a function to cancel directory loading
   const cancelDirectoryLoading = useCallback(() => {
@@ -470,6 +491,22 @@ const App = (): JSX.Element => {
 
     let concatenatedString = "";
     
+    // Add prompt if enabled
+    if (includePrompt) {
+      const defaultPrompt = `You are tasked to implement a feature. Instructions are as follows:
+
+${customPrompt}
+
+Instructions for the output format:
+- Output code without descriptions, unless it is important.
+- Minimize prose, comments and empty lines.
+- Only show the relevant code that needs to be modified. Use comments to represent the parts that are not modified.
+- Make it easy to copy and paste.
+- Consider other possibilities to achieve the result, do not be limited by the prompt.
+`;
+      concatenatedString += defaultPrompt + "\n\n";
+    }
+    
     // Add ASCII file tree if enabled
     if (includeFileTree && selectedFolder) {
       const asciiTree = generateAsciiFileTree(sortedSelected, selectedFolder);
@@ -592,6 +629,11 @@ const App = (): JSX.Element => {
               toggleExpanded={toggleExpanded}
             />
             <div className="content-area">
+              <UserInstructions
+                instructions={customPrompt}
+                setInstructions={setCustomPrompt}
+              />
+              
               <div className="content-header">
                 <div className="content-title">Selected Files</div>
                 <div className="content-actions">
@@ -635,14 +677,24 @@ const App = (): JSX.Element => {
 
               <div className="copy-button-container">
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "12px", width: "100%", maxWidth: "400px" }}>
-                  <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
-                    <input
-                      type="checkbox"
-                      checked={includeFileTree}
-                      onChange={() => setIncludeFileTree(!includeFileTree)}
-                    />
-                    <span>Include File Tree</span>
-                  </label>
+                  <div style={{ display: "flex", gap: "16px" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={includeFileTree}
+                        onChange={() => setIncludeFileTree(!includeFileTree)}
+                      />
+                      <span>Include File Tree</span>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: "8px", cursor: "pointer" }}>
+                      <input
+                        type="checkbox"
+                        checked={includePrompt}
+                        onChange={() => setIncludePrompt(!includePrompt)}
+                      />
+                      <span>Include Prompt</span>
+                    </label>
+                  </div>
                   <CopyButton
                     text={getSelectedFilesContent()}
                     className="primary full-width"
